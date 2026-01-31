@@ -1,6 +1,38 @@
-import os
+import time
 import streamlit as st
 from utils.logger import log_question_answer
+
+def generate_response_stream(prompt):
+    """
+    Generator function to stream responses.
+    Handles both static responses and RAG chain streaming.
+    """
+    # 1. Hardcoded logic: Document count
+    if "how many document" in prompt.lower():
+        files = st.session_state.get("processed_files", [])
+        response_text = f"You have uploaded {len(files)} document(s)."
+        for word in response_text.split(" "):
+            yield word + " "
+            time.sleep(0.05)
+        return
+
+    # 2. Check if documents assume uploaded
+    if st.session_state.get("rag_chain") is None:
+        response_text = "Please upload documents in the 'Documents' tab first so I can answer your questions!"
+        for word in response_text.split(" "):
+            yield word + " "
+            time.sleep(0.05)
+        return
+
+    # 3. RAG Chain Response
+    try:
+        # Check if the chain supports streaming (it should)
+        # We assume the chain returns chunks with an "answer" key containing deltas
+        for chunk in st.session_state.rag_chain.stream({"input": prompt}):
+            if "answer" in chunk:
+                yield chunk["answer"]
+    except Exception as e:
+        yield f"Error: {str(e)}"
 
 def render_chat_tab():
     if "messages" not in st.session_state:
@@ -26,22 +58,16 @@ def render_chat_tab():
         # Generate response inside the chat container
         with messages_container:
             with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    if "how many document" in prompt.lower():
-                        files = st.session_state.get("processed_files", [])
-                        answer = f"You have uploaded {len(files)} document(s)."
-                        
-                    elif st.session_state.get("rag_chain") is None:
-                        answer = "Please upload documents in the 'Documents' tab first so I can answer your questions!"
-                        
-                    else:
-                        try:
-                            response = st.session_state.rag_chain.invoke({"input": prompt})
-                            answer = response["answer"]
-                            log_question_answer(prompt, answer)
-                        except Exception as e:
-                            answer = f"Error: {e}"
+                # Use st.write_stream for the typewriter effect
+                # We can't use st.spinner easily with stream, but the stream itself indicates activity
+                answer = st.write_stream(generate_response_stream(prompt))
                 
-                st.markdown(answer)
-
-        st.session_state.messages.append({"role": "assistant", "content": answer})
+        # Log and save interaction
+        if answer:
+            # Re-verify if log_question_answer is robust to partials? No, answer is full string here.
+            try:
+               log_question_answer(prompt, answer)
+            except Exception as e:
+               print(f"Logging failed: {e}")
+            
+            st.session_state.messages.append({"role": "assistant", "content": answer})
