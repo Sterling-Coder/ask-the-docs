@@ -6,11 +6,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(BASE_DIR, "history.csv")
 
 def log_question_answer(question, answer):
-    file_exists = os.path.isfile(HISTORY_FILE)
+    # Check if file exists and is not empty
+    write_header = not os.path.isfile(HISTORY_FILE) or os.stat(HISTORY_FILE).st_size == 0
 
     with open(HISTORY_FILE, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        if not file_exists:
+        if write_header:
             writer.writerow(["Timestamp", "Question", "Answer"])
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
