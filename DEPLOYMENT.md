@@ -91,7 +91,7 @@ sudo usermod -aG docker $USER
 1.  **Clone your code** (or copy it):
     *Option A: Git Clone (Easiest if your code is on GitHub)*
     ```bash
-    git clone https://github.com/YOUR_USERNAME/ask-the-docs.git
+    git clone https://github.com/Sterling-Coder/ask-the-docs.git
     cd ask-the-docs
     ```
     *Option B: SCP (Copy local files if not using Git)*
@@ -127,6 +127,8 @@ sudo usermod -aG docker $USER
 1.  Open your browser.
 2.  Visit: `http://<EC2-PUBLIC-IP>:8501`
 3.  You should see your "Ask the Docs" app running!
+
+http://51.21.161.9:8501
 
 ## Troubleshooting
 
